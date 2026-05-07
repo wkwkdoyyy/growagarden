@@ -165,7 +165,7 @@ loadoutTab:CreateDropdown({
 loadoutTab:CreateDropdown({
     Name = "Target Loadout",
     Options = {"1", "2", "3", "4", "5", "6"},
-    CurrentOption = {"2"},
+    CurrentOption = {"3"},
     MultipleOptions = false,
     Callback = function(opt)
         targetLoadout = opt[1]
