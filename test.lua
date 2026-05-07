@@ -216,7 +216,7 @@ task.spawn(function()
             rotationStatus:Set({
                 Title = "Rotation Status",
                 Content = (rotationActive and "🟢 ON" or "🔴 OFF")
-                    .. "\n" .. startLoadout .. " ➜ " .. targetLoadout
+                    .. "\n" .. startLoadout .. " -> " .. targetLoadout
                     .. "\nDelay: " .. tostring(currentDelay) .. "s"
             })
         end)
