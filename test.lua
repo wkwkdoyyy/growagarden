@@ -26,7 +26,7 @@ local availableSeeds = {}
 local availableGears = {}
 
 -- =============================================
--- WINDOW SETUP
+-- WINDOW SETUP (MOBILE OPTIMIZED)
 -- =============================================
 local Window = Fluent:CreateWindow({
     Title = "WKWKHUB | Grow A Garden",
@@ -64,7 +64,7 @@ ToggleButton.MouseButton1Click:Connect(function()
 end)
 
 -- =============================================
--- FUNCTIONS: LOGIC
+-- FUNCTIONS: FULL SCANNER LOGIC
 -- =============================================
 local function getStock(item, uiContainer)
     local frame = uiContainer:FindFirstChild(item)
@@ -79,30 +79,32 @@ local function getStock(item, uiContainer)
     return 0
 end
 
--- INFO DEBUG ADA DI SINI (Outputnya ke F9 Console)
-local function clickSeedButton(seedName)
-    pcall(function()
-        local seedFrame = seedshopui:FindFirstChild(seedName)
-        if seedFrame then
-            -- Debug: Mencari tombol beli
-            local buyButton = seedFrame:FindFirstChild("Sheckles_Buy", true) 
-            if buyButton then
-                local sensor = buyButton:FindFirstChild("SENSOR", true)
-                if sensor then
-                    -- INI DEBUGNYA (Akan muncul di F9)
-                    warn("[WKWKHUB DEBUG] Mencoba klik SENSOR untuk benih: " .. seedName)
-                    firesignal(sensor.MouseButton1Click)
-                    firesignal(sensor.Activated)
-                else
-                    warn("[WKWKHUB DEBUG] SENSOR TIDAK DITEMUKAN untuk: " .. seedName)
-                end
-            else
-                warn("[WKWKHUB DEBUG] Tombol Sheckles_Buy tidak ada di frame: " .. seedName)
-            end
-        else
-            warn("[WKWKHUB DEBUG] Frame benih tidak ditemukan: " .. seedName)
+local function scanAndClickSeed(seedName)
+    local seedFolder = seedshopui:FindFirstChild(seedName)
+    if not seedFolder then return end
+
+    warn("--- SCANNING OBJECTS FOR: " .. seedName .. " ---")
+    local clickableFound = false
+    
+    -- Menjelajah SEMUA objek di dalam folder benih
+    for _, obj in ipairs(seedFolder:GetDescendants()) do
+        -- Cetak nama setiap objek yang ditemukan agar kita tahu strukturnya
+        print("Found: " .. obj.Name .. " | Class: " .. obj.ClassName)
+        
+        -- Kriteria objek yang bisa diklik
+        if obj:IsA("GuiButton") or obj.Name == "SENSOR" or obj.Name == "Sheckles_Buy" then
+            pcall(function()
+                firesignal(obj.MouseButton1Click)
+                firesignal(obj.Activated)
+            end)
+            clickableFound = true
+            warn(">>> CLICKED: " .. obj.Name .. " (" .. obj.ClassName .. ")")
         end
-    end)
+    end
+    
+    if not clickableFound then
+        warn("No clickable objects found for " .. seedName)
+    end
 end
 
 local function clickLoadout(number)
@@ -138,8 +140,8 @@ task.spawn(function()
         if autoBuySeeds then
             for name, _ in pairs(seeds) do
                 if getStock(name, seedshopui) > 0 then 
-                    clickSeedButton(name)
-                    task.wait(0.1) 
+                    scanAndClickSeed(name)
+                    task.wait(0.5) -- Jeda lebih lama agar tidak spam console
                 end
             end
         end
@@ -175,7 +177,7 @@ local Tabs = {
 
 -- TAB: INFO
 Tabs.Info:AddParagraph({ Title = "WKWKHUB | Grow A Garden", Content = "Script by doyyy" })
-Tabs.Info:AddParagraph({ Title = "Fitur", Content = "🔄 Auto Loadout Rotation\n🛒 Auto Buy All Seeds & Gear (Remote)" })
+Tabs.Info:AddParagraph({ Title = "Fitur", Content = "🔄 Auto Loadout Rotation\n🛒 Auto Buy All Seeds & Gear" })
 Tabs.Info:AddParagraph({ Title = "⚠️ NOTE", Content = "Kalo mau pilih loudout 2, pilih loudout 3. dan sebaliknya, bug mapping dari GAG!" })
 Tabs.Info:AddButton({ Title = "Copy Discord Invite", Callback = function() setclipboard("https://discord.gg/9hdXwZZXW9") end })
 Tabs.Info:AddButton({ Title = "Self Destruct", Callback = function() ScreenGui:Destroy() Window:Destroy() end })
@@ -190,7 +192,7 @@ local LoadoutStatusPara = Tabs.Loadout:AddParagraph({ Title = "Status", Content 
 
 -- TAB: SHOP
 Tabs.Shop:AddSection("Auto Purchase")
-Tabs.Shop:AddToggle("BuyS", { Title = "Auto Buy Seeds (Sensor)", Default = false, Callback = function(V) autoBuySeeds = V end })
+Tabs.Shop:AddToggle("BuyS", { Title = "Auto Buy Seeds (Full Scanner)", Default = false, Callback = function(V) autoBuySeeds = V end })
 Tabs.Shop:AddToggle("BuyG", { Title = "Auto Buy Gear (Remote)", Default = false, Callback = function(V) autoBuyGear = V end })
 Tabs.Shop:AddSection("Monitoring")
 local StockParagraph = Tabs.Shop:AddParagraph({ Title = "Stock List", Content = "Scanning..." })
