@@ -23,7 +23,6 @@ local currentDelay = 5
 local startLoadout = "1"
 local targetLoadout = "3"
 
--- Stock Tracking Variables
 local availableSeeds = {}
 local availableGears = {}
 
@@ -33,7 +32,7 @@ local availableGears = {}
 local Window = Fluent:CreateWindow({
     Title = "WKWKHUB | Grow A Garden",
     SubTitle = "by doyyy",
-    TabWidth = 160,
+    TabWidth = 100,
     Size = UDim2.fromOffset(580, 460),
     Acrylic = true, 
     Theme = "Dark",
@@ -53,10 +52,10 @@ ToggleButton.Parent = ScreenGui
 ToggleButton.BackgroundColor3 = Color3.fromRGB(80, 0, 150)
 ToggleButton.Position = UDim2.new(0.12, 0, 0.15, 0)
 ToggleButton.Size = UDim2.new(0, 50, 0, 50)
-ToggleButton.Text = "W"
+ToggleButton.Text = "WKWK"
 ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleButton.Font = Enum.Font.GothamBold
-ToggleButton.TextSize = 24
+ToggleButton.TextSize = 15
 ToggleButton.Draggable = true
 UICorner.CornerRadius = UDim.new(0, 12)
 UICorner.Parent = ToggleButton
@@ -84,12 +83,10 @@ end
 local function updateStockLists()
     availableSeeds = {}
     availableGears = {}
-    
     for name, _ in pairs(seeds) do
         local s = getStock(name, seedshopui)
         if s > 0 then table.insert(availableSeeds, name .. " (x" .. s .. ")") end
     end
-    
     for name, _ in pairs(gears) do
         local g = getStock(name, gearshopui)
         if g > 0 then table.insert(availableGears, name .. " (x" .. g .. ")") end
@@ -99,8 +96,7 @@ end
 local function processAutoBuy()
     while task.wait(1) do
         updateStockLists()
-        
-        if autoBuySeeds and #availableSeeds > 0 then
+        if autoBuySeeds then
             for name, _ in pairs(seeds) do
                 local stock = getStock(name, seedshopui)
                 if stock > 0 then
@@ -112,8 +108,7 @@ local function processAutoBuy()
                 end
             end
         end
-
-        if autoBuyGear and #availableGears > 0 then
+        if autoBuyGear then
             for name, _ in pairs(gears) do
                 local stock = getStock(name, gearshopui)
                 if stock > 0 then
@@ -159,54 +154,83 @@ end
 -- TABS SETUP
 -- =============================================
 local Tabs = {
-    About = Window:AddTab({ Title = "About", Icon = "info" }),
+    Info = Window:AddTab({ Title = "Info", Icon = "info" }),
     Loadout = Window:AddTab({ Title = "Loadout", Icon = "refresh-cw" }),
     Shop = Window:AddTab({ Title = "Auto Shop", Icon = "shopping-cart" })
 }
 
-Tabs.About:AddButton({
-    Title = "Self Destruct",
-    Callback = function() ScreenGui:Destroy() Window:Destroy() end
+-- =============================================
+-- TAB 1: INFO
+-- =============================================
+Tabs.Info:AddParagraph({
+    Title = "WKWKHUB | Grow A Garden",
+    Content = "Script by doyyy"
 })
 
--- TAB: LOADOUT
+Tabs.Info:AddParagraph({
+    Title = "⚠️ NOTE",
+    Content = "Bug mapping loadout adalah bug dari gamenya sendiri (BUKAN bug script)."
+})
+
+Tabs.Info:AddButton({
+    Title = "Copy Discord Invite",
+    Callback = function() setclipboard("https://discord.gg/9hdXwZZXW9") end
+})
+
+-- =============================================
+-- TAB 2: LOADOUT
+-- =============================================
 Tabs.Loadout:AddSection("Rotation Settings")
+
 Tabs.Loadout:AddDropdown("StartL", { Title = "Start Loadout", Values = {"1","2","3","4","5","6"}, Default = "1", Callback = function(V) startLoadout = V end })
 Tabs.Loadout:AddDropdown("TargetL", { Title = "Target Loadout", Values = {"1","2","3","4","5","6"}, Default = "3", Callback = function(V) targetLoadout = V end })
 Tabs.Loadout:AddInput("Dly", { Title = "Delay (s)", Default = "5", Numeric = true, Finished = true, Callback = function(V) currentDelay = tonumber(V) or 5 end })
-Tabs.Loadout:AddToggle("RotTog", { Title = "Enable Rotation", Default = false, Callback = function(V) rotationActive = V if V then task.spawn(startRotation) end end })
 
--- TAB: SHOP
+Tabs.Loadout:AddToggle("RotTog", { 
+    Title = "Enable Rotation", 
+    Default = false, 
+    Callback = function(V) 
+        rotationActive = V 
+        if V then task.spawn(startRotation) end 
+    end 
+})
+
+local LoadoutStatusPara = Tabs.Loadout:AddParagraph({
+    Title = "Rotation Status",
+    Content = "🔴 OFF"
+})
+
+-- =============================================
+-- TAB 3: SHOP (Control + Stock Info)
+-- =============================================
 Tabs.Shop:AddSection("Auto Purchase")
+
 Tabs.Shop:AddToggle("BuyS", { Title = "Auto Buy Seeds", Default = false, Callback = function(V) autoBuySeeds = V end })
 Tabs.Shop:AddToggle("BuyG", { Title = "Auto Buy Gear", Default = false, Callback = function(V) autoBuyGear = V end })
 
--- =============================================
--- STATUS UPDATE (UI FEEDBACK WITH NAMES)
--- =============================================
-local StatusParagraph = Tabs.Loadout:AddParagraph({
-    Title = "System Monitoring",
-    Content = "Loading stock data..."
+Tabs.Shop:AddSection("Live Stock Monitoring")
+
+local StockParagraph = Tabs.Shop:AddParagraph({
+    Title = "Current Stock",
+    Content = "Scanning items..."
 })
 
+-- =============================================
+-- REAL-TIME UPDATER
+-- =============================================
 task.spawn(function()
     while task.wait(1) do
         if not Window then break end
         
-        local seedList = #availableSeeds > 0 and table.concat(availableSeeds, ", ") or "No Stock"
-        local gearList = #availableGears > 0 and table.concat(availableGears, ", ") or "No Stock"
+        -- Update Tab Loadout
+        local rotText = rotationActive and "🟢 ACTIVE" or "🔴 OFF"
+        LoadoutStatusPara:SetTitle("Status: " .. rotText)
+        LoadoutStatusPara:SetDesc(string.format("Path: %s ➔ %s\nDelay: %ss", startLoadout, targetLoadout, tostring(currentDelay)))
         
-        local fullInfo = string.format(
-            "🌱 **Seeds In Stock:**\n%s\n\n🔧 **Gears In Stock:**\n%s\n\n-------------------\n🔄 **Rotation:** %s ➔ %s (%ss)",
-            seedList,
-            gearList,
-            startLoadout,
-            targetLoadout,
-            tostring(currentDelay)
-        )
-        
-        StatusParagraph:SetTitle("Loadout: " .. (rotationActive and "🟢 ACTIVE" or "🔴 OFF"))
-        StatusParagraph:SetDesc(fullInfo)
+        -- Update Tab Shop (Stock Info)
+        local seedList = #availableSeeds > 0 and table.concat(availableSeeds, ", ") or "Empty"
+        local gearList = #availableGears > 0 and table.concat(availableGears, ", ") or "Empty"
+        StockParagraph:SetDesc(string.format("🌱 **Seeds:** %s\n\n🔧 **Gears:** %s", seedList, gearList))
     end
 end)
 
