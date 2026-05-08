@@ -28,6 +28,35 @@ local Window = Fluent:CreateWindow({
 })
 
 -- =============================================
+-- MOBILE TOGGLE BUTTON (Agar menu tidak hilang)
+-- =============================================
+local ScreenGui = Instance.new("ScreenGui")
+local ToggleButton = Instance.new("TextButton")
+local UICorner = Instance.new("UICorner")
+
+ScreenGui.Name = "WKWK_MobileToggle"
+ScreenGui.Parent = (game:GetService("CoreGui") or game:GetService("Players").LocalPlayer.PlayerGui)
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Parent = ScreenGui
+ToggleButton.BackgroundColor3 = Color3.fromRGB(80, 0, 150)
+ToggleButton.Position = UDim2.new(0.12, 0, 0.15, 0)
+ToggleButton.Size = UDim2.new(0, 50, 0, 50)
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.Text = "W" -- Inisial WKWKHUB
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextSize = 24
+ToggleButton.Draggable = true -- Bisa digeser di mobile
+
+UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.Parent = ToggleButton
+
+ToggleButton.MouseButton1Click:Connect(function()
+    Window:Minimize()
+end)
+
+-- =============================================
 -- TABS
 -- =============================================
 local Tabs = {
@@ -36,33 +65,7 @@ local Tabs = {
 }
 
 -- =============================================
--- TAB: ABOUT
--- =============================================
-Tabs.About:AddParagraph({
-    Title = "WKWKHUB | Grow A Garden",
-    Content = "Fitur:\n🔄 Auto Loadout Rotation\n   - Rotasi otomatis antar loadout pet"
-})
-
-Tabs.About:AddParagraph({
-    Title = "⚠️ NOTE",
-    Content = "Jika setelah klik Loadout 2 malah pindah ke Loadout 3, atau sebaliknya, itu BUKAN BUG dari script ini melainkan bug game."
-})
-
-Tabs.About:AddButton({
-    Title = "Copy Discord Invite",
-    Description = "Salin link discord ke clipboard",
-    Callback = function()
-        setclipboard("https://discord.gg/9hdXwZZXW9")
-        Fluent:Notify({
-            Title = "WKWKHUB",
-            Content = "Discord invite copied!",
-            Duration = 3
-        })
-    end
-})
-
--- =============================================
--- FUNCTIONS
+-- FUNCTIONS (Logika Auto Loadout)
 -- =============================================
 local function getLoadoutFrame(number)
     local success, result = pcall(function()
@@ -96,47 +99,63 @@ local function startRotation()
 end
 
 -- =============================================
--- TAB: LOADOUT (SETTINGS)
+-- TAB: ABOUT
+-- =============================================
+Tabs.About:AddParagraph({
+    Title = "WKWKHUB | Grow A Garden",
+    Content = "Script by doyyy\n\nFitur:\n🔄 Auto Loadout Rotation"
+})
+
+Tabs.About:AddButton({
+    Title = "Copy Discord Invite",
+    Callback = function()
+        setclipboard("https://discord.gg/9hdXwZZXW9")
+        Fluent:Notify({ Title = "WKWKHUB", Content = "Discord invite copied!", Duration = 3 })
+    end
+})
+
+Tabs.About:AddButton({
+    Title = "Self Destruct",
+    Description = "Menghapus UI dan Tombol Melayang",
+    Callback = function()
+        ScreenGui:Destroy()
+        Window:Destroy()
+    end
+})
+
+-- =============================================
+-- TAB: LOADOUT
 -- =============================================
 Tabs.Loadout:AddSection("Rotation Settings")
 
-local DropdownStart = Tabs.Loadout:AddDropdown("StartLoadout", {
+Tabs.Loadout:AddDropdown("StartLoadout", {
     Title = "Start Loadout",
     Values = {"1", "2", "3", "4", "5", "6"},
-    Multi = false,
     Default = "1",
-    Callback = function(Value)
-        startLoadout = Value
-    end
+    Callback = function(Value) startLoadout = Value end
 })
 
-local DropdownTarget = Tabs.Loadout:AddDropdown("TargetLoadout", {
+Tabs.Loadout:AddDropdown("TargetLoadout", {
     Title = "Target Loadout",
     Values = {"1", "2", "3", "4", "5", "6"},
-    Multi = false,
     Default = "3",
-    Callback = function(Value)
-        targetLoadout = Value
-    end
+    Callback = function(Value) targetLoadout = Value end
 })
 
-local DelayInput = Tabs.Loadout:AddInput("DelayInput", {
+Tabs.Loadout:AddInput("DelayInput", {
     Title = "Rotation Delay (detik)",
     Default = "5",
-    Placeholder = "1-9999",
     Numeric = true,
     Finished = true,
     Callback = function(Value)
         local num = tonumber(Value)
-        if num and num >= 0.1 then
-            currentDelay = num
-        end
+        if num and num >= 0.1 then currentDelay = num end
     end
 })
 
 Tabs.Loadout:AddSection("Control")
 
-local ToggleRotation = Tabs.Loadout:AddToggle("ToggleRotation", {
+Tabs.Loadout:AddToggle("ToggleRotation", {
     Title = "Enable Rotation", 
     Default = false,
     Callback = function(Value)
@@ -147,30 +166,20 @@ local ToggleRotation = Tabs.Loadout:AddToggle("ToggleRotation", {
     end
 })
 
--- =============================================
--- STATUS PARAGRAPH
--- =============================================
 local StatusParagraph = Tabs.Loadout:AddParagraph({
     Title = "Rotation Status",
     Content = "🔴 OFF"
 })
 
+-- Update status secara real-time
 task.spawn(function()
     while task.wait(1) do
+        if not Window then break end
         local statusText = (rotationActive and "🟢 ON" or "🔴 OFF")
         StatusParagraph:SetTitle("Status: " .. statusText)
-        StatusParagraph:SetDesc(
-            string.format("Path: %s ➔ %s\nDelay: %ss", startLoadout, targetLoadout, tostring(currentDelay))
-        )
+        StatusParagraph:SetDesc(string.format("Path: %s ➔ %s\nDelay: %ss", startLoadout, targetLoadout, tostring(currentDelay)))
     end
 end)
 
--- Finish Setup
 Window:SelectTab(1)
-Fluent:Notify({
-    Title = "WKWKHUB",
-    Content = "Grow A Garden Script Loaded",
-    Duration = 5
-})
-
-print("WKWKHUB | Fluent UI Loaded")
+Fluent:Notify({ Title = "WKWKHUB", Content = "Script Loaded", Duration = 5 })
