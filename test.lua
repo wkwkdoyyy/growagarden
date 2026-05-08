@@ -119,13 +119,13 @@ end
 -- MAIN LOOPS
 -- =============================================
 task.spawn(function()
-    while task.wait(0.1) do
+    while task.wait(0.5) do
         updateStockLists()
         if autoBuySeeds then
             for name, _ in pairs(seeds) do
                 if getStock(name, seedshopui) > 0 then 
                     clickSeedButton(name)
-                    task.wait(0.1)
+                    task.wait(0.2)
                 end
             end
         end
