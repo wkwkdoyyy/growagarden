@@ -1,14 +1,6 @@
--- =============================================
--- WKWKHUB | GROW A GARDEN
--- LOADOUT ROTATION
--- =============================================
-
--- [!] NOTE:
--- Jika setelah klik Loadout 2 malah pindah ke Loadout 3,
--- atau sebaliknya, itu BUKAN BUG dari script ini.
--- Itu adalah bug dari game Grow A Garden sendiri
--- yang kadang salah mapping nomor loadout.
--- =============================================
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -17,211 +9,168 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 -- =============================================
 -- VARIABLES
 -- =============================================
-
 local rotationActive = false
 local currentDelay = 5
 local startLoadout = "1"
 local targetLoadout = "3"
 
 -- =============================================
--- RAYFIELD
+-- WINDOW SETUP
 -- =============================================
-
-local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
-
-local Window = Rayfield:CreateWindow({
-    Name = "WKWKHUB | Grow A Garden",
-    Icon = 97296381694913,
-    LoadingTitle = "WKWKHUB Loading...",
-    LoadingSubtitle = "Grow A Garden",
-    Theme = "Amethyst",
-    DisableRayfieldPrompts = false,
-    DisableBuildWarnings = false,
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = nil,
-        FileName = "WKWKHUB-GAG"
-    },
-    Discord = {
-        Enabled = true,
-        Invite = "discord.gg/9hdXwZZXW9",
-        RememberJoins = true
-    },
-    KeySystem = false,
-})
-
-Rayfield:Notify({
-    Title = "WKWKHUB",
-    Content = "Grow A Garden Script Loaded",
-    Duration = 6,
-})
-
--- =============================================
--- TAB 1: ABOUT
--- =============================================
-
-local aboutTab = Window:CreateTab("ℹ️ About", nil)
-
-aboutTab:CreateParagraph({
+local Window = Fluent:CreateWindow({
     Title = "WKWKHUB | Grow A Garden",
-    Content = [[
-Script by doyyy
-
-Fitur:
-🔄 Auto Loadout Rotation
-   - Rotasi otomatis antar loadout pet
-]]
+    SubTitle = "by doyyy",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = true, 
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl
 })
 
-aboutTab:CreateParagraph({
+-- =============================================
+-- TABS
+-- =============================================
+local Tabs = {
+    About = Window:AddTab({ Title = "About", Icon = "info" }),
+    Loadout = Window:AddTab({ Title = "Loadout", Icon = "refresh-cw" })
+}
+
+-- =============================================
+-- TAB: ABOUT
+-- =============================================
+Tabs.About:AddParagraph({
+    Title = "WKWKHUB | Grow A Garden",
+    Content = "Fitur:\n🔄 Auto Loadout Rotation\n   - Rotasi otomatis antar loadout pet"
+})
+
+Tabs.About:AddParagraph({
     Title = "⚠️ NOTE",
-    Content = [[
-Jika setelah klik Loadout 2 malah pindah ke Loadout 3, atau sebaliknya, itu BUKAN BUG dari script ini.
-
-Itu adalah bug dari game Grow A Garden sendiri yang salah mapping nomor loadout.
-]]
+    Content = "Jika setelah klik Loadout 2 malah pindah ke Loadout 3, atau sebaliknya, itu BUKAN BUG dari script ini melainkan bug game."
 })
 
-aboutTab:CreateSection("🔗 Links")
-
-aboutTab:CreateButton({
-    Name = "Copy Discord Invite",
+Tabs.About:AddButton({
+    Title = "Copy Discord Invite",
+    Description = "Salin link discord ke clipboard",
     Callback = function()
         setclipboard("https://discord.gg/9hdXwZZXW9")
-        Rayfield:Notify({
+        Fluent:Notify({
             Title = "WKWKHUB",
             Content = "Discord invite copied!",
-            Duration = 3,
+            Duration = 3
         })
-    end,
+    end
 })
 
 -- =============================================
--- TAB 2: AUTO LOADOUT
+-- FUNCTIONS
 -- =============================================
-
-local loadoutTab = Window:CreateTab("🔄 Loadout", nil)
-
--- =============================================
--- LOADOUT FUNCTIONS
--- =============================================
-
 local function getLoadoutFrame(number)
     local success, result = pcall(function()
         return PlayerGui.ActivePetUI.Frame.Main.PetLoadout.Main.ButtonHolder["PET_LOADOUT_" .. tostring(number)]
     end)
-    if success then return result end
-    return nil
-end
-
-local function getSensor(number)
-    local frame = getLoadoutFrame(number)
-    if not frame then return nil end
-    return frame:FindFirstChild("SENSOR", true)
+    return success and result or nil
 end
 
 local function clickLoadout(number)
-    local sensor = getSensor(number)
+    local frame = getLoadoutFrame(number)
+    local sensor = frame and frame:FindFirstChild("SENSOR", true)
     if not sensor then return false end
     
-    local success = pcall(function()
+    pcall(function()
         firesignal(sensor.MouseButton1Click)
         firesignal(sensor.Activated)
     end)
-    return success
+    return true
 end
 
 local function startRotation()
-    local startNum = tonumber(startLoadout)
-    local targetNum = tonumber(targetLoadout)
-
     while rotationActive do
-        clickLoadout(targetNum)
+        clickLoadout(targetLoadout)
         task.wait(currentDelay)
 
         if not rotationActive then break end
 
-        clickLoadout(startNum)
+        clickLoadout(startLoadout)
         task.wait(currentDelay)
     end
 end
 
 -- =============================================
--- LOADOUT UI
+-- TAB: LOADOUT (SETTINGS)
 -- =============================================
+Tabs.Loadout:AddSection("Rotation Settings")
 
-loadoutTab:CreateSection("🔄 Rotation Settings")
-
-loadoutTab:CreateDropdown({
-    Name = "Start Loadout",
-    Options = {"1", "2", "3", "4", "5", "6"},
-    CurrentOption = {"1"},
-    MultipleOptions = false,
-    Callback = function(opt)
-        startLoadout = opt[1]
+local DropdownStart = Tabs.Loadout:AddDropdown("StartLoadout", {
+    Title = "Start Loadout",
+    Values = {"1", "2", "3", "4", "5", "6"},
+    Multi = false,
+    Default = "1",
+    Callback = function(Value)
+        startLoadout = Value
     end
 })
 
-loadoutTab:CreateDropdown({
-    Name = "Target Loadout",
-    Options = {"1", "2", "3", "4", "5", "6"},
-    CurrentOption = {"3"},
-    MultipleOptions = false,
-    Callback = function(opt)
-        targetLoadout = opt[1]
+local DropdownTarget = Tabs.Loadout:AddDropdown("TargetLoadout", {
+    Title = "Target Loadout",
+    Values = {"1", "2", "3", "4", "5", "6"},
+    Multi = false,
+    Default = "3",
+    Callback = function(Value)
+        targetLoadout = Value
     end
 })
 
-loadoutTab:CreateInput({
-    Name = "Rotation Delay (detik)",
-    CurrentValue = "5",
-    PlaceholderText = "1-9999",
-    RemoveTextAfterFocusLost = false,
-    Flag = "DelayInput",
-    Callback = function(Text)
-        local num = tonumber(Text)
-        if num and num >= 1 then
+local DelayInput = Tabs.Loadout:AddInput("DelayInput", {
+    Title = "Rotation Delay (detik)",
+    Default = "5",
+    Placeholder = "1-9999",
+    Numeric = true,
+    Finished = true,
+    Callback = function(Value)
+        local num = tonumber(Value)
+        if num and num >= 0.1 then
             currentDelay = num
         end
-    end,
+    end
 })
 
-loadoutTab:CreateSection("🎮 Control")
+Tabs.Loadout:AddSection("Control")
 
-loadoutTab:CreateToggle({
-    Name = "Enable Rotation",
-    CurrentValue = false,
-    Callback = function(val)
-        rotationActive = val
-        if val then
+local ToggleRotation = Tabs.Loadout:AddToggle("ToggleRotation", {
+    Title = "Enable Rotation", 
+    Default = false,
+    Callback = function(Value)
+        rotationActive = Value
+        if Value then
             task.spawn(startRotation)
         end
     end
 })
 
 -- =============================================
--- STATUS
+-- STATUS PARAGRAPH
 -- =============================================
-
-loadoutTab:CreateSection("📊 Status")
-
-local rotationStatus = loadoutTab:CreateParagraph({
+local StatusParagraph = Tabs.Loadout:AddParagraph({
     Title = "Rotation Status",
-    Content = "OFF"
+    Content = "🔴 OFF"
 })
 
 task.spawn(function()
-    while true do
-        pcall(function()
-            rotationStatus:Set({
-                Title = "Rotation Status",
-                Content = (rotationActive and "🟢 ON" or "🔴 OFF")
-                    .. "\n" .. startLoadout .. " -> " .. targetLoadout
-                    .. "\nDelay: " .. tostring(currentDelay) .. "s"
-            })
-        end)
-        task.wait(1)
+    while task.wait(1) do
+        local statusText = (rotationActive and "🟢 ON" or "🔴 OFF")
+        StatusParagraph:SetTitle("Status: " .. statusText)
+        StatusParagraph:SetDesc(
+            string.format("Path: %s ➔ %s\nDelay: %ss", startLoadout, targetLoadout, tostring(currentDelay))
+        )
     end
 end)
 
-print("WKWKHUB | Grow A Garden Loaded")
+-- Finish Setup
+Window:SelectTab(1)
+Fluent:Notify({
+    Title = "WKWKHUB",
+    Content = "Grow A Garden Script Loaded",
+    Duration = 5
+})
+
+print("WKWKHUB | Fluent UI Loaded")
