@@ -5,9 +5,10 @@ local RS = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Data Requirements
+-- Data & Remotes
 local seeds = require(RS.Data.SeedData)
 local gears = require(RS.Data.GearData)
+local remotetobuytheseeds = RS.GameEvents.BuySeedStock
 local remotetobuythegear = RS.GameEvents.BuyGearStock
 local seedshopui = PlayerGui:WaitForChild("Seed_Shop").Frame.ScrollingFrame
 local gearshopui = PlayerGui:WaitForChild("Gear_Shop").Frame.ScrollingFrame
@@ -31,7 +32,7 @@ local availableGears = {}
 local Window = Fluent:CreateWindow({
     Title = "WKWKHUB | Grow A Garden",
     SubTitle = "by doyyy",
-    TabWidth = 120, 
+    TabWidth = 110, 
     Size = UDim2.fromOffset(470, 380), 
     Acrylic = true, 
     Theme = "Dark",
@@ -79,18 +80,6 @@ local function getStock(item, uiContainer)
     return 0
 end
 
-local function clickSeedButton(seedName)
-    local success, res = pcall(function()
-        local seedFrame = seedshopui:FindFirstChild(seedName)
-        local buyButton = seedFrame.Frame:FindFirstChild("Sheckles_Buy")
-        local sensor = buyButton:FindFirstChild("SENSOR", true)
-        if sensor then
-            firesignal(sensor.MouseButton1Click)
-            firesignal(sensor.Activated)
-        end
-    end)
-end
-
 local function clickLoadout(number)
     pcall(function()
         local frame = PlayerGui.ActivePetUI.Frame.Main.PetLoadout.Main.ButtonHolder["PET_LOADOUT_" .. tostring(number)]
@@ -121,14 +110,22 @@ end
 task.spawn(function()
     while task.wait(0.5) do
         updateStockLists()
+        -- Auto Buy Seeds (Method: Remote)
         if autoBuySeeds then
             for name, _ in pairs(seeds) do
-                if getStock(name, seedshopui) > 0 then clickSeedButton(name) task.wait(0.1) end
+                if getStock(name, seedshopui) > 0 then 
+                    remotetobuytheseeds:FireServer(name) 
+                    task.wait(0.05) 
+                end
             end
         end
+        -- Auto Buy Gear (Method: Remote)
         if autoBuyGear then
             for name, _ in pairs(gears) do
-                if getStock(name, gearshopui) > 0 then remotetobuythegear:FireServer(name) task.wait(0.1) end
+                if getStock(name, gearshopui) > 0 then 
+                    remotetobuythegear:FireServer(name) 
+                    task.wait(0.05) 
+                end
             end
         end
     end
@@ -153,10 +150,10 @@ local Tabs = {
     Shop = Window:AddTab({ Title = "Auto Shop", Icon = "shopping-cart" })
 }
 
--- TAB: INFO (Sekarang Lengkap)
+-- TAB: INFO
 Tabs.Info:AddParagraph({ Title = "WKWKHUB | Grow A Garden", Content = "Script by doyyy" })
-Tabs.Info:AddParagraph({ Title = "Fitur", Content = "🔄 Auto Loadout Rotation\n🛒 Auto Buy All Seeds & Gear" })
-Tabs.Info:AddParagraph({ Title = "⚠️ NOTE", Content = "Jika loadout salah nomor, itu bug dari gamenya sendiri." })
+Tabs.Info:AddParagraph({ Title = "Fitur", Content = "🔄 Auto Loadout Rotation\n🛒 Auto Buy All Seeds & Gear (Remote)" })
+Tabs.Info:AddParagraph({ Title = "⚠️ NOTE", Content = "Kalo mau pilih loudout 2, pilih loudout 3. dan sebaliknya, bug mapping dari GAG!" })
 Tabs.Info:AddButton({ Title = "Copy Discord Invite", Callback = function() setclipboard("https://discord.gg/9hdXwZZXW9") end })
 Tabs.Info:AddButton({ Title = "Self Destruct", Callback = function() ScreenGui:Destroy() Window:Destroy() end })
 
@@ -170,10 +167,10 @@ local LoadoutStatusPara = Tabs.Loadout:AddParagraph({ Title = "Status", Content 
 
 -- TAB: SHOP
 Tabs.Shop:AddSection("Auto Purchase")
-Tabs.Shop:AddToggle("BuyS", { Title = "Auto Buy Seeds (Sensor)", Default = false, Callback = function(V) autoBuySeeds = V end })
+Tabs.Shop:AddToggle("BuyS", { Title = "Auto Buy Seeds (Remote)", Default = false, Callback = function(V) autoBuySeeds = V end })
 Tabs.Shop:AddToggle("BuyG", { Title = "Auto Buy Gear (Remote)", Default = false, Callback = function(V) autoBuyGear = V end })
 Tabs.Shop:AddSection("Monitoring")
-local StockParagraph = Tabs.Shop:AddParagraph({ Title = "Stock", Content = "Scanning..." })
+local StockParagraph = Tabs.Shop:AddParagraph({ Title = "Stock List", Content = "Scanning..." })
 
 -- =============================================
 -- REAL-TIME UPDATER
@@ -186,7 +183,7 @@ task.spawn(function()
         
         local sList = #availableSeeds > 0 and table.concat(availableSeeds, ", ") or "None"
         local gList = #availableGears > 0 and table.concat(availableGears, ", ") or "None"
-        StockParagraph:SetDesc(string.format("🌱 **Seeds:** %s\n🔧 **Gears:** %s", sList, gList))
+        StockParagraph:SetDesc(string.format("🌱 **Seeds:** %s\n\n🔧 **Gears:** %s", sList, gList))
     end
 end)
 
