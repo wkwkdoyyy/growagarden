@@ -26,14 +26,13 @@ local availableSeeds = {}
 local availableGears = {}
 
 -- =============================================
--- WINDOW SETUP (MOBILE OPTIMIZED)
+-- WINDOW SETUP
 -- =============================================
 local Window = Fluent:CreateWindow({
     Title = "WKWKHUB | Grow A Garden",
     SubTitle = "by doyyy",
     TabWidth = 110, 
     Size = UDim2.fromOffset(470, 380), 
-    Acrylic = true, 
     Theme = "Dark",
     MinimizeKey = Enum.KeyCode.LeftControl
 })
@@ -64,7 +63,7 @@ ToggleButton.MouseButton1Click:Connect(function()
 end)
 
 -- =============================================
--- FUNCTIONS: FULL SCANNER LOGIC
+-- FUNCTIONS: LOGIC
 -- =============================================
 local function getStock(item, uiContainer)
     local frame = uiContainer:FindFirstChild(item)
@@ -79,32 +78,17 @@ local function getStock(item, uiContainer)
     return 0
 end
 
-local function scanAndClickSeed(seedName)
-    local seedFolder = seedshopui:FindFirstChild(seedName)
-    if not seedFolder then return end
-
-    warn("--- SCANNING OBJECTS FOR: " .. seedName .. " ---")
-    local clickableFound = false
-    
-    -- Menjelajah SEMUA objek di dalam folder benih
-    for _, obj in ipairs(seedFolder:GetDescendants()) do
-        -- Cetak nama setiap objek yang ditemukan agar kita tahu strukturnya
-        print("Found: " .. obj.Name .. " | Class: " .. obj.ClassName)
-        
-        -- Kriteria objek yang bisa diklik
-        if obj:IsA("GuiButton") or obj.Name == "SENSOR" or obj.Name == "Sheckles_Buy" then
-            pcall(function()
-                firesignal(obj.MouseButton1Click)
-                firesignal(obj.Activated)
-            end)
-            clickableFound = true
-            warn(">>> CLICKED: " .. obj.Name .. " (" .. obj.ClassName .. ")")
+local function clickSeedButton(seedName)
+    pcall(function()
+        local seedFolder = seedshopui:FindFirstChild(seedName)
+        if seedFolder then
+            local targetBtn = seedFolder:FindFirstChild("Main_Frame")
+            if targetBtn and targetBtn:IsA("ImageButton") then
+                firesignal(targetBtn.MouseButton1Click)
+                firesignal(targetBtn.Activated)
+            end
         end
-    end
-    
-    if not clickableFound then
-        warn("No clickable objects found for " .. seedName)
-    end
+    end)
 end
 
 local function clickLoadout(number)
@@ -135,13 +119,13 @@ end
 -- MAIN LOOPS
 -- =============================================
 task.spawn(function()
-    while task.wait(0.5) do
+    while task.wait(0.1) do
         updateStockLists()
         if autoBuySeeds then
             for name, _ in pairs(seeds) do
                 if getStock(name, seedshopui) > 0 then 
-                    scanAndClickSeed(name)
-                    task.wait(0.5) -- Jeda lebih lama agar tidak spam console
+                    clickSeedButton(name)
+                    task.wait(0.1)
                 end
             end
         end
@@ -149,7 +133,7 @@ task.spawn(function()
             for name, _ in pairs(gears) do
                 if getStock(name, gearshopui) > 0 then 
                     remotetobuythegear:FireServer(name) 
-                    task.wait(0.1) 
+                    task.wait(0.2) 
                 end
             end
         end
@@ -192,8 +176,8 @@ local LoadoutStatusPara = Tabs.Loadout:AddParagraph({ Title = "Status", Content 
 
 -- TAB: SHOP
 Tabs.Shop:AddSection("Auto Purchase")
-Tabs.Shop:AddToggle("BuyS", { Title = "Auto Buy Seeds (Full Scanner)", Default = false, Callback = function(V) autoBuySeeds = V end })
-Tabs.Shop:AddToggle("BuyG", { Title = "Auto Buy Gear (Remote)", Default = false, Callback = function(V) autoBuyGear = V end })
+Tabs.Shop:AddToggle("BuyS", { Title = "Auto Buy Seeds", Default = false, Callback = function(V) autoBuySeeds = V end })
+Tabs.Shop:AddToggle("BuyG", { Title = "Auto Buy Gear", Default = false, Callback = function(V) autoBuyGear = V end })
 Tabs.Shop:AddSection("Monitoring")
 local StockParagraph = Tabs.Shop:AddParagraph({ Title = "Stock List", Content = "Scanning..." })
 
