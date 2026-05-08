@@ -8,7 +8,6 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 -- Data & Remotes
 local seeds = require(RS.Data.SeedData)
 local gears = require(RS.Data.GearData)
-local remotetobuytheseeds = RS.GameEvents.BuySeedStock
 local remotetobuythegear = RS.GameEvents.BuyGearStock
 local seedshopui = PlayerGui:WaitForChild("Seed_Shop").Frame.ScrollingFrame
 local gearshopui = PlayerGui:WaitForChild("Gear_Shop").Frame.ScrollingFrame
@@ -27,7 +26,7 @@ local availableSeeds = {}
 local availableGears = {}
 
 -- =============================================
--- WINDOW SETUP (MOBILE OPTIMIZED)
+-- WINDOW SETUP
 -- =============================================
 local Window = Fluent:CreateWindow({
     Title = "WKWKHUB | Grow A Garden",
@@ -65,7 +64,7 @@ ToggleButton.MouseButton1Click:Connect(function()
 end)
 
 -- =============================================
--- FUNCTIONS: SHOP & LOADOUT LOGIC
+-- FUNCTIONS: LOGIC
 -- =============================================
 local function getStock(item, uiContainer)
     local frame = uiContainer:FindFirstChild(item)
@@ -78,6 +77,32 @@ local function getStock(item, uiContainer)
         end
     end
     return 0
+end
+
+-- INFO DEBUG ADA DI SINI (Outputnya ke F9 Console)
+local function clickSeedButton(seedName)
+    pcall(function()
+        local seedFrame = seedshopui:FindFirstChild(seedName)
+        if seedFrame then
+            -- Debug: Mencari tombol beli
+            local buyButton = seedFrame:FindFirstChild("Sheckles_Buy", true) 
+            if buyButton then
+                local sensor = buyButton:FindFirstChild("SENSOR", true)
+                if sensor then
+                    -- INI DEBUGNYA (Akan muncul di F9)
+                    warn("[WKWKHUB DEBUG] Mencoba klik SENSOR untuk benih: " .. seedName)
+                    firesignal(sensor.MouseButton1Click)
+                    firesignal(sensor.Activated)
+                else
+                    warn("[WKWKHUB DEBUG] SENSOR TIDAK DITEMUKAN untuk: " .. seedName)
+                end
+            else
+                warn("[WKWKHUB DEBUG] Tombol Sheckles_Buy tidak ada di frame: " .. seedName)
+            end
+        else
+            warn("[WKWKHUB DEBUG] Frame benih tidak ditemukan: " .. seedName)
+        end
+    end)
 end
 
 local function clickLoadout(number)
@@ -110,21 +135,19 @@ end
 task.spawn(function()
     while task.wait(0.5) do
         updateStockLists()
-        -- Auto Buy Seeds (Method: Remote)
         if autoBuySeeds then
             for name, _ in pairs(seeds) do
                 if getStock(name, seedshopui) > 0 then 
-                    remotetobuytheseeds:FireServer(name) 
-                    task.wait(0.05) 
+                    clickSeedButton(name)
+                    task.wait(0.1) 
                 end
             end
         end
-        -- Auto Buy Gear (Method: Remote)
         if autoBuyGear then
             for name, _ in pairs(gears) do
                 if getStock(name, gearshopui) > 0 then 
                     remotetobuythegear:FireServer(name) 
-                    task.wait(0.05) 
+                    task.wait(0.1) 
                 end
             end
         end
@@ -167,7 +190,7 @@ local LoadoutStatusPara = Tabs.Loadout:AddParagraph({ Title = "Status", Content 
 
 -- TAB: SHOP
 Tabs.Shop:AddSection("Auto Purchase")
-Tabs.Shop:AddToggle("BuyS", { Title = "Auto Buy Seeds (Remote)", Default = false, Callback = function(V) autoBuySeeds = V end })
+Tabs.Shop:AddToggle("BuyS", { Title = "Auto Buy Seeds (Sensor)", Default = false, Callback = function(V) autoBuySeeds = V end })
 Tabs.Shop:AddToggle("BuyG", { Title = "Auto Buy Gear (Remote)", Default = false, Callback = function(V) autoBuyGear = V end })
 Tabs.Shop:AddSection("Monitoring")
 local StockParagraph = Tabs.Shop:AddParagraph({ Title = "Stock List", Content = "Scanning..." })
